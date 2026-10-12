@@ -41,7 +41,9 @@ sub resource_pointers_for {
 }
 
 sub keyword_location_for {
-    my ( $absolute, $evaluated, $pointers ) = @_;
+    my ( $annotation, $pointers ) = @_;
+    my $absolute  = $annotation->absolute_keyword_location;
+    my $evaluated = $annotation->keyword_location;
     my $fragment;
     if ( defined $absolute && length $absolute ) {
         my $hash = index $absolute, '#';
@@ -70,12 +72,8 @@ sub bowtie_annotations {
           {
             keyword          => $annotation->keyword,
             instanceLocation => $annotation->instance_location,
-            keywordLocation  => keyword_location_for(
-                $annotation->absolute_keyword_location,
-                $annotation->keyword_location,
-                $pointers
-            ),
-            annotation => $annotation->annotation,
+            keywordLocation  => keyword_location_for( $annotation, $pointers ),
+            annotation       => $annotation->annotation,
           };
     }
     return \@annotations;
@@ -147,18 +145,19 @@ my %cmds = (
         foreach my $test ( @{ $case->{tests} } ) {
             try {
                 my $result =
-                  $want_annotations
-                  ? $js->evaluate( $test->{instance}, $case->{schema},
-                    { collect_annotations => 1 } )
-                  : $js->evaluate( $test->{instance}, $case->{schema} );
-                push @results,
-                  $want_annotations
-                  ? {
+                  $js->evaluate( $test->{instance}, $case->{schema},
+                    { collect_annotations => $want_annotations } );
+                my $row = {
                     valid       => $result->valid,
-                    annotations =>
-                      bowtie_annotations( $result, $resource_pointers ),
-                  }
-                  : { valid => $result->valid };
+                    annotations => $want_annotations
+                    ? bowtie_annotations( $result, $resource_pointers )
+                    : undef,
+                };
+
+                # Bowtie's flag output format rejects any key but `valid`, and
+                # an undefined value would still encode as null.
+                delete $row->{annotations} unless $want_annotations;
+                push @results, $row;
             }
             catch {
                 return {
