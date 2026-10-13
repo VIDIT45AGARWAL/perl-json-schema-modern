@@ -147,17 +147,14 @@ my %cmds = (
                 my $result =
                   $js->evaluate( $test->{instance}, $case->{schema},
                     { collect_annotations => $want_annotations } );
-                my $row = {
+                push @results,
+                  $want_annotations
+                  ? {
                     valid       => $result->valid,
-                    annotations => $want_annotations
-                    ? bowtie_annotations( $result, $resource_pointers )
-                    : undef,
-                };
-
-                # Bowtie's flag output format rejects any key but `valid`, and
-                # an undefined value would still encode as null.
-                delete $row->{annotations} unless $want_annotations;
-                push @results, $row;
+                    annotations =>
+                      bowtie_annotations( $result, $resource_pointers ),
+                  }
+                  : { valid => $result->valid };
             }
             catch {
                 return {
