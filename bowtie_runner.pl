@@ -19,8 +19,7 @@ my %dialect = (
 sub resource_pointers_for {
     my ($schema) = @_;
     my %pointers;
-    my $walk;
-    $walk = sub {
+    local *walk = sub {
         my ( $node, $pointer, $base ) = @_;
         return if ref $node ne 'HASH';
         my $current = $base;
@@ -33,10 +32,10 @@ sub resource_pointers_for {
             $pointers{$current} = $pointer;
         }
         for my $key ( keys %$node ) {
-            $walk->( $node->{$key}, "$pointer/$key", $current );
+            walk( $node->{$key}, "$pointer/$key", $current );
         }
     };
-    $walk->( $schema, '', '' );
+    walk( $schema, '', '' );
     return \%pointers;
 }
 
